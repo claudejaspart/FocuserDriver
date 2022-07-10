@@ -12,12 +12,12 @@ int STEPPER2_PIN_3= 8;
 int STEPPER2_PIN_4= 9;
 
 // focuser speeds in ms
-int speed1 = 2;
-int speed2 = 2;
+int delay1 = 2;
+int delay2 = 2;
 
 // focuser number increment steps
-int nbTurns1 = -10000;
-int nbTurns2 = -10000;
+int nbTurns1 = 50;
+int nbTurns2 = 50;
 
 // new value
 int newValue = 0;
@@ -26,7 +26,8 @@ int newValue = 0;
 int moving1 = 0;
 
 void setup() 
-{  // initialisation des entrées
+{  
+  // initialisation des entrées
   pinMode(STEPPER1_PIN_1, OUTPUT);
   pinMode(STEPPER1_PIN_2, OUTPUT);
   pinMode(STEPPER1_PIN_3, OUTPUT);
@@ -47,102 +48,168 @@ void loop()
   if(Serial.available()>0)
   {
     cmd=Serial.readStringUntil('#');
-    if (cmd=="GETSPEED1")
+    if (cmd=="GDELAY1")
     {
-      Serial.print(speed1);
+      Serial.print(delay1);
       Serial.println("#");
     }
-    else if (cmd=="GETSPEED2")
+    else if (cmd=="GDELAY2")
     {
-      Serial.print(speed2);
+      Serial.print(delay2);
       Serial.println("#");
     }
-    else if (cmd=="GETTURNS1")
+    else if (cmd=="GTURNS1")
     {
       Serial.print(nbTurns1);
       Serial.println("#");
     }
-    else if (cmd=="GETTURNS2")
+    else if (cmd=="GTURNS2")
     {
       Serial.print(nbTurns2);
       Serial.println("#");
     }
-    else if (cmd=="SETSPEED1")
+    else if (cmd=="SDELAY1")
     {
       newValue = 1;
     }
-    else if (cmd=="SETSPEED2")
+    else if (cmd=="SDELAY2")
     {
       newValue = 2;
     }
-    else if (cmd=="SETTURNS1")
+    else if (cmd=="STURNS1")
     {
       newValue = 3;
     }
-    else if (cmd=="SETTURNS2")
+    else if (cmd=="STURNS2")
     {
       newValue = 4;
     }    
-    else if (cmd=="MOVE1")
+    else if (cmd=="F1")
     {
-      M1_Move();
+      moveForward1(0);
+      Serial.print("DONE");
+      Serial.println("#");
     }
-    else if (cmd=="MOVE2")
+    else if (cmd=="F2")
     {
-      M2_Move();
+      moveForward2(0);
+      Serial.print("DONE");
+      Serial.println("#");
+    }    
+    else if (cmd=="R1")
+    {
+      moveBackward1(0);
+      Serial.print("DONE");
+      Serial.println("#");
+    }
+    else if (cmd=="R2")
+    {
+      moveBackward2(0);
+      Serial.print("DONE");
+      Serial.println("#");
+    }
+    else if (cmd=="FF1")
+    {
+      moveForward1(1);
+      Serial.print("DONE");
+      Serial.println("#");
+    }
+    else if (cmd=="FF2")
+    {
+      moveForward2(1);
+      Serial.print("DONE");
+      Serial.println("#");
+    }    
+    else if (cmd=="FR1")
+    {
+      moveBackward1(1);
+      Serial.print("DONE");
+      Serial.println("#");
+    }
+    else if (cmd=="FR2")
+    {
+      moveBackward2(1);
+      Serial.print("DONE");
+      Serial.println("#");
     }
     else if (newValue == 1)
     {
       // speed
-      speed1 = cmd.toInt();
+      delay1 = abs(cmd.toInt());
       newValue = 0;
+      delay(1000);
+      Serial.print(delay1);
+      Serial.println("#");
     }
     else if (newValue == 2)
     {
       // speed
-      speed2 = cmd.toInt();
+      delay2 = abs(cmd.toInt());
       newValue = 0;
+      delay(1000);
+      Serial.print(delay2);
+      Serial.println("#");
     }
     else if (newValue == 3)
     {
       // #steps to do
-      nbTurns1 = cmd.toInt();
+      nbTurns1 = abs(cmd.toInt());
       newValue = 0;
+      delay(1000);
+      Serial.print(nbTurns1);
+      Serial.println("#");
     }
     else if (newValue == 4)
     {
       // #steps to do
-      nbTurns2 = cmd.toInt();
+      nbTurns2 = abs(cmd.toInt());
       newValue = 0;
+      delay(1000);
+      Serial.print(nbTurns2);
+      Serial.println("#");
     }
   }
 }
 
 
-void M1_Move()
+void moveForward1(int fast)
 {
-    // direction
-    boolean dir = true;
+    int nbTurns = nbTurns1;
     
-    if (nbTurns1 < 0)
-      dir = false;
-
+    if (fast) 
+      nbTurns = nbTurns * 3;
+    
     // nombre de pas
     int step_number = 0;
 
-    while(step_number < (abs(nbTurns1) * 4))
+    while(step_number < (nbTurns * 4))
     {
-      if(dir)
-      {
-        Move_Motor1_Coil_Left(step_number%4);
-      }
-      else
-      {
-        Move_Motor1_Coil_Right(step_number%4);
-      }
-
+      moveCoilForward1(step_number%4);
       step_number++;
-      delay(speed1);
+      delay(delay1);
+    }
+
+    digitalWrite(STEPPER1_PIN_1, LOW);
+    digitalWrite(STEPPER1_PIN_2, LOW);
+    digitalWrite(STEPPER1_PIN_3, LOW);
+    digitalWrite(STEPPER1_PIN_4, LOW);
+}
+
+void moveBackward1(int fast)
+{
+    int nbTurns = nbTurns1;
+    
+    if (fast) 
+      nbTurns = nbTurns * 3;
+      
+    // nombre de pas
+    int step_number = 0;
+
+    while(step_number < (nbTurns * 4))
+    {
+      moveCoilBackward1(step_number%4);
+      step_number++;
+      delay(delay1);
     }
 
     digitalWrite(STEPPER1_PIN_1, LOW);
@@ -153,7 +220,7 @@ void M1_Move()
 
 
 
-void Move_Motor1_Coil_Left(int coil_number)
+void moveCoilForward1(int coil_number)
 {
   switch(coil_number)
   {
@@ -182,10 +249,9 @@ void Move_Motor1_Coil_Left(int coil_number)
         digitalWrite(STEPPER1_PIN_4, HIGH);
         break;
   } 
-
 }
 
-void Move_Motor1_Coil_Right(int coil_number)
+void moveCoilBackward1(int coil_number)
 {
   switch(coil_number)
   {
@@ -214,41 +280,49 @@ void Move_Motor1_Coil_Right(int coil_number)
       digitalWrite(STEPPER1_PIN_4, LOW);
       break;
   }
-
 }
 
 
 
-
-
-
-
-
-
-void M2_Move()
+void moveForward2(int fast)
 {
-    // direction
-    boolean dir = true;
+    int nbTurns = nbTurns2;
     
-    if (nbTurns2 < 0)
-      dir = false;
-
+    if (fast) 
+      nbTurns = nbTurns * 3;
+      
     // nombre de pas
     int step_number = 0;
 
-    while(step_number < (abs(nbTurns2) * 4))
+    while(step_number < (nbTurns * 4))
     {
-      if(dir)
-      {
-        Move_Motor2_Coil_Left(step_number%4);
-      }
-      else
-      {
-        Move_Motor2_Coil_Right(step_number%4);
-      }
-
+      moveCoilForward2(step_number%4);
       step_number++;
-      delay(speed2);
+      delay(delay2);
+    }
+
+    digitalWrite(STEPPER2_PIN_1, LOW);
+    digitalWrite(STEPPER2_PIN_2, LOW);
+    digitalWrite(STEPPER2_PIN_3, LOW);
+    digitalWrite(STEPPER2_PIN_4, LOW);
+}
+
+
+void moveBackward2(int fast)
+{
+    int nbTurns = nbTurns2;
+    
+    if (fast) 
+      nbTurns = nbTurns * 3;
+      
+    // nombre de pas
+    int step_number = 0;
+
+    while(step_number < (nbTurns * 4))
+    {
+      moveCoilBackward2(step_number%4);
+      step_number++;
+      delay(delay2);
     }
 
     digitalWrite(STEPPER2_PIN_1, LOW);
@@ -259,9 +333,7 @@ void M2_Move()
 
 
 
-
-
-void Move_Motor2_Coil_Left(int coil_number)
+void moveCoilForward2(int coil_number)
 {
   switch(coil_number)
   {
@@ -290,10 +362,10 @@ void Move_Motor2_Coil_Left(int coil_number)
         digitalWrite(STEPPER2_PIN_4, HIGH);
         break;
   } 
-
 }
 
-void Move_Motor2_Coil_Right(int coil_number)
+
+void moveCoilBackward2(int coil_number)
 {
   switch(coil_number)
   {
@@ -322,5 +394,4 @@ void Move_Motor2_Coil_Right(int coil_number)
       digitalWrite(STEPPER2_PIN_4, LOW);
       break;
   }
-
 }
